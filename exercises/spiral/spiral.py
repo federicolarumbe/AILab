@@ -130,9 +130,9 @@ class FExpertsNetwork(nn.Module):
         self.hidden_dim = hidden_dim
         
         # 2-3 fully-connected layers with hidden size 16-32
-        self.fc1 = nn.Linear(1, 24)  # Input: 1 (theta), Output: 24
-        self.fc2 = nn.Linear(24, 32)  # Hidden layer
-        self.fc3 = nn.Linear(32, hidden_dim * 2)  # Output: 10 * 2 = 20
+        self.fc1 = nn.Linear(1, 64)  # Input: 1 (theta), Output: 24
+        self.fc2 = nn.Linear(64, 64)  # Hidden layer
+        self.fc3 = nn.Linear(64, hidden_dim * 2)  # Output: 10 * 2 = 20
         
         self.relu = nn.ReLU()
     
