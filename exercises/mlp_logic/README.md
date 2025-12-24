@@ -85,3 +85,81 @@ The model is trained on complete truth tables for all operators:
 - Each operator has 4 combinations (2^2 for two boolean inputs)
 - Total training samples: 5 operators × 4 combinations = 20 samples
 
+---
+
+## Sequence Model
+
+A sequence-based MLP that handles variable-length sequences of boolean operations.
+
+### Overview
+
+The sequence model can process:
+- **Chain sequences**: `[x1, x2, op1, x3, op2, x4, op3, ...]` representing `((x1 op1 x2) op2 x3) op3 x4) ...`
+- **Stack sequences**: `[x1, x2, op1, x3, x4, op2, op3]` representing `(x1 op1 x2) op3 (x3 op2 x4)`
+
+### Architecture
+
+The sequence model uses:
+- **RNN/LSTM layers**: `n` layers with hidden dimension `m` (configurable)
+- **Input encoding**: Each token (value or operator) is encoded as 6 dimensions
+- **Output layer**: MLP that produces a single boolean value
+
+### Usage
+
+Train the sequence model with default parameters:
+
+```bash
+python train_sequence.py
+```
+
+Custom configuration:
+
+```bash
+python train_sequence.py --hidden_dim 128 --num_layers 3 --epochs 2000 --max_length 9
+```
+
+### Command Line Arguments
+
+- `--hidden_dim`: Hidden dimension m (default: 64)
+- `--num_layers`: Number of RNN/LSTM layers n (default: 2)
+- `--use_lstm`: Use LSTM (default: True)
+- `--use_gru`: Use GRU instead of LSTM
+- `--epochs`: Number of training epochs (default: 1000)
+- `--batch_size`: Batch size (default: 32)
+- `--learning_rate`: Learning rate (default: 0.001)
+- `--max_length`: Maximum sequence length (default: 7)
+- `--num_samples`: Number of samples per length (default: 100)
+
+### Example
+
+```python
+from sequence_model import SequenceLogicMLP
+from sequence_data_utils import encode_sequence, pad_sequences
+import torch
+
+# Load or create model
+model = SequenceLogicMLP(hidden_dim=64, num_layers=2, use_lstm=True)
+
+# Chain sequence: [1, 0, 'and', 1, 'or'] represents ((1 AND 0) OR 1)
+sequence = [1, 0, 'and', 1, 'or']
+encoded = encode_sequence(sequence)
+padded, lengths = pad_sequences([encoded])
+
+input_tensor = torch.from_numpy(padded).float()
+lengths_tensor = torch.from_numpy(lengths)
+
+prediction = model.predict(input_tensor, lengths_tensor)
+print(f"Prediction: {prediction.item()}")  # Should output 1 for ((1 AND 0) OR 1)
+```
+
+### Sequence Formats
+
+**Chain sequences** evaluate left-to-right:
+- `[x1, x2, op1]` → `x1 op1 x2`
+- `[x1, x2, op1, x3, op2]` → `(x1 op1 x2) op2 x3`
+- `[x1, x2, op1, x3, op2, x4, op3]` → `((x1 op1 x2) op2 x3) op3 x4`
+
+**Stack sequences** use postfix notation:
+- `[x1, x2, op1]` → `x1 op1 x2`
+- `[x1, x2, op1, x3, x4, op2, op3]` → `(x1 op1 x2) op3 (x3 op2 x4)`
+
