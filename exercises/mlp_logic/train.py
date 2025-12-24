@@ -124,7 +124,7 @@ def test_model(model, device=None):
                     
                     # Get prediction
                     input_vec = encode_input(x1, x2, operator)
-                    input_tensor = torch.from_numpy(input_vec).unsqueeze(0).to(device)
+                    input_tensor = torch.from_numpy(input_vec).float().unsqueeze(0).to(device)
                     prediction = model.predict(input_tensor).item()
                     
                     match = "✓" if int(prediction) == expected else "✗"
