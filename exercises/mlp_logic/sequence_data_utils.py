@@ -66,16 +66,16 @@ def evaluate_chain_sequence(sequence):
     
     result = OPERATOR_FUNCTIONS[sequence[2]](sequence[0], sequence[1])
     
-    # Process remaining tokens in pairs (operator, value)
+    # Process remaining tokens in pairs (value, operator)
     i = 3
     while i < len(sequence):
-        if not is_operator(sequence[i]):
-            raise ValueError(f"Expected operator at position {i}, got {sequence[i]}")
-        if i + 1 >= len(sequence) or not is_value(sequence[i + 1]):
-            raise ValueError(f"Expected value after operator at position {i}")
+        if not is_value(sequence[i]):
+            raise ValueError(f"Expected value at position {i}, got {sequence[i]}")
+        if i + 1 >= len(sequence) or not is_operator(sequence[i + 1]):
+            raise ValueError(f"Expected operator after value at position {i}")
         
-        op = sequence[i]
-        val = sequence[i + 1]
+        val = sequence[i]
+        op = sequence[i + 1]
         result = OPERATOR_FUNCTIONS[op](result, val)
         i += 2
     

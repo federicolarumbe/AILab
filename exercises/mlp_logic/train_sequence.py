@@ -141,11 +141,23 @@ def test_model(model, device=None):
     print("-" * 60)
     chain_examples = [
         ([0, 1, 'and'], "Simple AND"),
+        ([1, 1, 'or'], "Simple OR"),
+        ([0, 1, 'xor'], "Simple XOR"),
+        ([1, 0, 'imply'], "Simple IMPLY"),
+        ([1, 0, 'not'], "Simple NOT"),
         ([1, 1, 'or', 0, 'and'], "Chain: (1 OR 1) AND 0"),
         ([0, 1, 'xor', 1, 'and', 0, 'or'], "Chain: ((0 XOR 1) AND 1) OR 0"),
+        ([0, 0, 'and', 1, 'or', 1, 'and'], "Chain: ((0 AND 0) OR 1) AND 1"),
+        ([1, 0, 'or', 0, 'and', 1, 'xor'], "Chain: ((1 OR 0) AND 0) XOR 1"),
+        ([0, 1, 'imply', 1, 'and', 0, 'or'], "Chain: ((0 IMPLY 1) AND 1) OR 0"),
+        ([1, 1, 'and', 0, 'or', 1, 'and', 0, 'or'], "Chain: (((1 AND 1) OR 0) AND 1) OR 0"),
+        ([0, 0, 'or', 1, 'and', 0, 'xor', 1, 'or'], "Chain: (((0 OR 0) AND 1) XOR 0) OR 1"),
     ]
     
     model.eval()
+    chain_correct = 0
+    chain_total = 0
+    
     with torch.no_grad():
         for sequence, description in chain_examples:
             try:
@@ -157,21 +169,42 @@ def test_model(model, device=None):
                 lengths_tensor = torch.from_numpy(lengths).to(device)
                 
                 prediction = model.predict(input_tensor, lengths_tensor).item()
-                match = "✓" if int(prediction) == expected else "✗"
+                predicted_int = int(prediction)
+                match = "✓" if predicted_int == expected else "✗"
+                
+                if predicted_int == expected:
+                    chain_correct += 1
+                chain_total += 1
                 
                 seq_str = ' '.join(str(x) for x in sequence)
-                print(f"{description:30} | Seq: {seq_str:30} | Expected: {expected} | Predicted: {int(prediction)} {match}")
+                print(f"{description:40} | Seq: {seq_str:35} | Expected: {expected} | Predicted: {predicted_int} {match}")
             except Exception as e:
                 print(f"Error with {description}: {e}")
+                chain_total += 1
+    
+    chain_accuracy = 100.0 * chain_correct / chain_total if chain_total > 0 else 0.0
+    print(f"\nChain sequences accuracy: {chain_accuracy:.2f}% ({chain_correct}/{chain_total})")
     
     # Test stack sequences
     print("\nStack sequences:")
     print("-" * 60)
     stack_examples = [
         ([0, 1, 'and'], "Simple AND (stack format)"),
+        ([1, 1, 'or'], "Simple OR (stack format)"),
+        ([0, 1, 'xor'], "Simple XOR (stack format)"),
+        ([1, 0, 'imply'], "Simple IMPLY (stack format)"),
         ([1, 1, 'or', 0, 0, 'and', 'or'], "Stack: (1 OR 1) OR (0 AND 0)"),
         ([0, 1, 'xor', 1, 0, 'and', 'or'], "Stack: (0 XOR 1) OR (1 AND 0)"),
+        ([1, 0, 'and', 0, 1, 'or', 'and'], "Stack: (1 AND 0) AND (0 OR 1)"),
+        ([0, 1, 'or', 1, 0, 'xor', 'and'], "Stack: (0 OR 1) AND (1 XOR 0)"),
+        ([1, 1, 'and', 0, 0, 'or', 'xor'], "Stack: (1 AND 1) XOR (0 OR 0)"),
+        ([0, 0, 'or', 1, 1, 'and', 'imply'], "Stack: (0 OR 0) IMPLY (1 AND 1)"),
+        ([1, 0, 'xor', 0, 1, 'and', 1, 0, 'or', 'or', 'and'], "Stack: ((1 XOR 0) AND (0 AND 1)) AND (1 OR 0)"),
+        ([0, 1, 'and', 1, 0, 'or', 0, 1, 'xor', 'and', 'or'], "Stack: ((0 AND 1) OR (1 OR 0)) OR (0 XOR 1)"),
     ]
+    
+    stack_correct = 0
+    stack_total = 0
     
     with torch.no_grad():
         for sequence, description in stack_examples:
@@ -184,12 +217,29 @@ def test_model(model, device=None):
                 lengths_tensor = torch.from_numpy(lengths).to(device)
                 
                 prediction = model.predict(input_tensor, lengths_tensor).item()
-                match = "✓" if int(prediction) == expected else "✗"
+                predicted_int = int(prediction)
+                match = "✓" if predicted_int == expected else "✗"
+                
+                if predicted_int == expected:
+                    stack_correct += 1
+                stack_total += 1
                 
                 seq_str = ' '.join(str(x) for x in sequence)
-                print(f"{description:30} | Seq: {seq_str:30} | Expected: {expected} | Predicted: {int(prediction)} {match}")
+                print(f"{description:40} | Seq: {seq_str:35} | Expected: {expected} | Predicted: {predicted_int} {match}")
             except Exception as e:
                 print(f"Error with {description}: {e}")
+                stack_total += 1
+    
+    stack_accuracy = 100.0 * stack_correct / stack_total if stack_total > 0 else 0.0
+    print(f"\nStack sequences accuracy: {stack_accuracy:.2f}% ({stack_correct}/{stack_total})")
+    
+    # Overall accuracy
+    total_correct = chain_correct + stack_correct
+    total_tests = chain_total + stack_total
+    overall_accuracy = 100.0 * total_correct / total_tests if total_tests > 0 else 0.0
+    print(f"\n{'='*60}")
+    print(f"Overall testing accuracy: {overall_accuracy:.2f}% ({total_correct}/{total_tests})")
+    print(f"{'='*60}")
 
 
 if __name__ == "__main__":
@@ -198,7 +248,7 @@ if __name__ == "__main__":
     parser.add_argument('--num_layers', type=int, default=2, help='Number of RNN/LSTM layers n (default: 2)')
     parser.add_argument('--use_lstm', action='store_true', default=True, help='Use LSTM (default: True)')
     parser.add_argument('--use_gru', action='store_true', help='Use GRU instead of LSTM')
-    parser.add_argument('--epochs', type=int, default=1000, help='Number of training epochs (default: 1000)')
+    parser.add_argument('--epochs', type=int, default=500, help='Number of training epochs (default: 500)')
     parser.add_argument('--batch_size', type=int, default=32, help='Batch size (default: 32)')
     parser.add_argument('--learning_rate', type=float, default=0.001, help='Learning rate (default: 0.001)')
     parser.add_argument('--max_length', type=int, default=7, help='Maximum sequence length (default: 7)')
