@@ -17,6 +17,36 @@ GREEN = '\033[92m'
 RESET = '\033[0m'
 
 
+def generate_simple_chain_test_cases():
+    """
+    Generate all test cases for simple chain operations [x1, x2, op].
+    Includes all combinations for AND, OR, XOR, IMPLY operators.
+    
+    Returns:
+        List of tuples: [(sequence, description), ...]
+    """
+    test_cases = []
+    operators = ['and', 'or', 'xor', 'imply']
+    
+    # Generate all combinations: 4 operators × 2×2 values = 16 test cases
+    for op in operators:
+        for x1 in [0, 1]:
+            for x2 in [0, 1]:
+                test_cases.append((
+                    [x1, x2, op],
+                    f"Simple {op.upper()}: {x1} {op.upper()} {x2}"
+                ))
+    
+    # Also add NOT operator test cases (NOT is unary, uses x1, ignores x2)
+    for x1 in [0, 1]:
+        test_cases.append((
+            [x1, 0, 'not'],  # x2 is ignored for NOT
+            f"Simple NOT: NOT {x1}"
+        ))
+    
+    return test_cases
+
+
 def train_model(hidden_dim=64, num_layers=2, use_lstm=True, epochs=1000, 
                 batch_size=32, learning_rate=0.001, max_length=7, 
                 num_samples_per_length=100, device=None):
@@ -144,12 +174,12 @@ def test_model(model, device=None):
     # Test chain sequences
     print("\nChain sequences:")
     print("-" * 60)
-    chain_examples = [
-        ([0, 1, 'and'], "Simple AND"),
-        ([1, 1, 'or'], "Simple OR"),
-        ([0, 1, 'xor'], "Simple XOR"),
-        ([1, 0, 'imply'], "Simple IMPLY"),
-        ([1, 0, 'not'], "Simple NOT"),
+    
+    # Generate all simple operation test cases (all combinations)
+    chain_examples = generate_simple_chain_test_cases()
+    
+    # Add longer chain examples (keep as is)
+    chain_examples.extend([
         ([1, 1, 'or', 0, 'and'], "Chain: (1 OR 1) AND 0"),
         ([0, 1, 'xor', 1, 'and', 0, 'or'], "Chain: ((0 XOR 1) AND 1) OR 0"),
         ([0, 0, 'and', 1, 'or', 1, 'and'], "Chain: ((0 AND 0) OR 1) AND 1"),
@@ -157,7 +187,7 @@ def test_model(model, device=None):
         ([0, 1, 'imply', 1, 'and', 0, 'or'], "Chain: ((0 IMPLY 1) AND 1) OR 0"),
         ([1, 1, 'and', 0, 'or', 1, 'and', 0, 'or'], "Chain: (((1 AND 1) OR 0) AND 1) OR 0"),
         ([0, 0, 'or', 1, 'and', 0, 'xor', 1, 'or'], "Chain: (((0 OR 0) AND 1) XOR 0) OR 1"),
-    ]
+    ])
     
     model.eval()
     chain_correct = 0
