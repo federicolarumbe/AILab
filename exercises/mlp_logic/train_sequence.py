@@ -11,6 +11,11 @@ from sequence_data_utils import (
     encode_sequence
 )
 
+# ANSI color codes
+RED = '\033[91m'
+GREEN = '\033[92m'
+RESET = '\033[0m'
+
 
 def train_model(hidden_dim=64, num_layers=2, use_lstm=True, epochs=1000, 
                 batch_size=32, learning_rate=0.001, max_length=7, 
@@ -170,14 +175,21 @@ def test_model(model, device=None):
                 
                 prediction = model.predict(input_tensor, lengths_tensor).item()
                 predicted_int = int(prediction)
-                match = "✓" if predicted_int == expected else "✗"
+                is_correct = predicted_int == expected
+                match = "✓" if is_correct else "✗"
                 
-                if predicted_int == expected:
+                if is_correct:
                     chain_correct += 1
                 chain_total += 1
                 
                 seq_str = ' '.join(str(x) for x in sequence)
-                print(f"{description:40} | Seq: {seq_str:35} | Expected: {expected} | Predicted: {predicted_int} {match}")
+                output_line = f"{description:40} | Seq: {seq_str:35} | Expected: {expected} | Predicted: {predicted_int} {match}"
+                
+                # Print in red if failed, normal color if passed
+                if is_correct:
+                    print(output_line)
+                else:
+                    print(f"{RED}{output_line}{RESET}")
             except Exception as e:
                 print(f"Error with {description}: {e}")
                 chain_total += 1
@@ -218,14 +230,21 @@ def test_model(model, device=None):
                 
                 prediction = model.predict(input_tensor, lengths_tensor).item()
                 predicted_int = int(prediction)
-                match = "✓" if predicted_int == expected else "✗"
+                is_correct = predicted_int == expected
+                match = "✓" if is_correct else "✗"
                 
-                if predicted_int == expected:
+                if is_correct:
                     stack_correct += 1
                 stack_total += 1
                 
                 seq_str = ' '.join(str(x) for x in sequence)
-                print(f"{description:40} | Seq: {seq_str:35} | Expected: {expected} | Predicted: {predicted_int} {match}")
+                output_line = f"{description:40} | Seq: {seq_str:35} | Expected: {expected} | Predicted: {predicted_int} {match}"
+                
+                # Print in red if failed, normal color if passed
+                if is_correct:
+                    print(output_line)
+                else:
+                    print(f"{RED}{output_line}{RESET}")
             except Exception as e:
                 print(f"Error with {description}: {e}")
                 stack_total += 1
