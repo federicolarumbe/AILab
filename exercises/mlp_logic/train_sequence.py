@@ -49,9 +49,108 @@ def generate_simple_chain_test_cases():
     return test_cases
 
 
+def load_or_generate_training_data(training_file=None, max_length=7, num_samples_per_length=100):
+    """
+    Load training data from JSON file or generate it.
+    
+    Args:
+        training_file: Path to JSON file with training data (if None, generate new data)
+        max_length: Maximum sequence length for generation (only used if training_file is None)
+        num_samples_per_length: Number of samples per length for generation (only used if training_file is None)
+    
+    Returns:
+        Tuple of (inputs, outputs, lengths, raw_sequences) where:
+        - inputs: List of encoded sequences (variable length)
+        - outputs: List of outputs
+        - lengths: List of sequence lengths
+        - raw_sequences: List of original sequences
+    """
+    if training_file:
+        # Load from JSON file
+        print(f"Loading training data from {training_file}...")
+        with open(training_file, 'r') as f:
+            training_data = json.load(f)
+        
+        raw_sequences = []
+        outputs = []
+        lengths = []
+        
+        for sample in training_data['samples']:
+            raw_sequences.append(sample['sequence'])
+            outputs.append(sample['output'])
+            lengths.append(sample['length'])
+        
+        # Encode sequences
+        inputs = [encode_sequence(seq) for seq in raw_sequences]
+        
+        # Convert outputs and lengths to numpy arrays for consistency
+        outputs = np.array(outputs, dtype=np.float32)
+        lengths = np.array(lengths, dtype=np.int64)
+        
+        print(f"Loaded {len(inputs)} training samples from file")
+        if len(lengths) > 0:
+            print(f"Sequence lengths: min={min(lengths)}, max={max(lengths)}, avg={sum(lengths)/len(lengths):.1f}")
+        
+        return inputs, outputs, lengths, raw_sequences
+    else:
+        # Generate new training data
+        print("Generating sequence training data...")
+        inputs, outputs, lengths, raw_sequences = generate_all_sequence_data(
+            max_length=max_length,
+            num_samples_per_length=num_samples_per_length
+        )
+        print(f"Generated {len(inputs)} training samples")
+        if len(lengths) > 0:
+            print(f"Sequence lengths: min={min(lengths)}, max={max(lengths)}, avg={sum(lengths)/len(lengths):.1f}")
+        else:
+            print("Warning: No training samples generated!")
+            return None, None, None, None
+        
+        # Save training set to file
+        # Convert numpy types to native Python types for JSON serialization
+        def convert_to_python_type(obj):
+            """Convert numpy types to native Python types."""
+            if isinstance(obj, (np.integer, np.int64, np.int32)):
+                return int(obj)
+            elif isinstance(obj, (np.floating, np.float64, np.float32)):
+                return float(obj)
+            elif isinstance(obj, np.ndarray):
+                return [convert_to_python_type(x) for x in obj]
+            elif isinstance(obj, list):
+                return [convert_to_python_type(x) for x in obj]
+            else:
+                return obj
+        
+        training_data = {
+            'samples': [
+                {
+                    'sequence': [convert_to_python_type(x) for x in sequence],
+                    'output': convert_to_python_type(output),
+                    'length': convert_to_python_type(length)
+                }
+                for sequence, output, length in zip(raw_sequences, outputs, lengths)
+            ],
+            'metadata': {
+                'total_samples': len(inputs),
+                'max_length': int(max_length),
+                'num_samples_per_length': int(num_samples_per_length),
+                'min_length': convert_to_python_type(min(lengths)) if lengths else 0,
+                'max_seq_length': convert_to_python_type(max(lengths)) if lengths else 0,
+                'avg_length': convert_to_python_type(sum(lengths) / len(lengths)) if lengths else 0.0
+            }
+        }
+        
+        output_file = '/tmp/sequence_training_set.json'
+        with open(output_file, 'w') as f:
+            json.dump(training_data, f, indent=2)
+        print(f"Training set saved to {output_file}")
+        
+        return inputs, outputs, lengths, raw_sequences
+
+
 def train_model(hidden_dim=64, num_layers=2, use_lstm=True, epochs=1000, 
                 batch_size=32, learning_rate=0.001, max_length=7, 
-                num_samples_per_length=100, device=None):
+                num_samples_per_length=100, training_file=None, device=None):
     """
     Train the sequence boolean logic MLP.
     
@@ -62,8 +161,9 @@ def train_model(hidden_dim=64, num_layers=2, use_lstm=True, epochs=1000,
         epochs (int): Number of training epochs
         batch_size (int): Batch size for training
         learning_rate (float): Learning rate
-        max_length (int): Maximum sequence length for training data
-        num_samples_per_length (int): Number of samples per sequence length
+        max_length (int): Maximum sequence length for training data (only used if training_file is None)
+        num_samples_per_length (int): Number of samples per sequence length (only used if training_file is None)
+        training_file (str): Path to JSON file with training data (if provided, loads instead of generating)
         device: PyTorch device (cuda or cpu)
     """
     if device is None:
@@ -72,57 +172,15 @@ def train_model(hidden_dim=64, num_layers=2, use_lstm=True, epochs=1000,
     print(f"Using device: {device}")
     print(f"Model configuration: hidden_dim={hidden_dim}, num_layers={num_layers}, use_lstm={use_lstm}")
     
-    # Generate training data
-    print("Generating sequence training data...")
-    inputs, outputs, lengths, raw_sequences = generate_all_sequence_data(
+    # Load or generate training data
+    inputs, outputs, lengths, raw_sequences = load_or_generate_training_data(
+        training_file=training_file,
         max_length=max_length,
         num_samples_per_length=num_samples_per_length
     )
-    print(f"Generated {len(inputs)} training samples")
-    if len(lengths) > 0:
-        print(f"Sequence lengths: min={min(lengths)}, max={max(lengths)}, avg={sum(lengths)/len(lengths):.1f}")
-    else:
-        print("Warning: No training samples generated!")
+    
+    if inputs is None:
         return None
-    
-    # Save training set to file
-    # Convert numpy types to native Python types for JSON serialization
-    def convert_to_python_type(obj):
-        """Convert numpy types to native Python types."""
-        if isinstance(obj, (np.integer, np.int64, np.int32)):
-            return int(obj)
-        elif isinstance(obj, (np.floating, np.float64, np.float32)):
-            return float(obj)
-        elif isinstance(obj, np.ndarray):
-            return [convert_to_python_type(x) for x in obj]
-        elif isinstance(obj, list):
-            return [convert_to_python_type(x) for x in obj]
-        else:
-            return obj
-    
-    training_data = {
-        'samples': [
-            {
-                'sequence': [convert_to_python_type(x) for x in sequence],
-                'output': convert_to_python_type(output),
-                'length': convert_to_python_type(length)
-            }
-            for sequence, output, length in zip(raw_sequences, outputs, lengths)
-        ],
-        'metadata': {
-            'total_samples': len(inputs),
-            'max_length': int(max_length),
-            'num_samples_per_length': int(num_samples_per_length),
-            'min_length': convert_to_python_type(min(lengths)) if lengths else 0,
-            'max_seq_length': convert_to_python_type(max(lengths)) if lengths else 0,
-            'avg_length': convert_to_python_type(sum(lengths) / len(lengths)) if lengths else 0.0
-        }
-    }
-    
-    output_file = '/tmp/sequence_training_set.json'
-    with open(output_file, 'w') as f:
-        json.dump(training_data, f, indent=2)
-    print(f"Training set saved to {output_file}")
     
     # Create data loader
     train_loader = create_sequence_data_loader(
@@ -306,6 +364,7 @@ if __name__ == "__main__":
     parser.add_argument('--learning_rate', type=float, default=0.001, help='Learning rate (default: 0.001)')
     parser.add_argument('--max_length', type=int, default=7, help='Maximum sequence length (default: 7)')
     parser.add_argument('--num_samples', type=int, default=100, help='Number of samples per length (default: 100)')
+    parser.add_argument('--training_file', type=str, default=None, help='Path to JSON file with training data (if provided, loads instead of generating)')
     
     args = parser.parse_args()
     
@@ -320,7 +379,8 @@ if __name__ == "__main__":
         batch_size=args.batch_size,
         learning_rate=args.learning_rate,
         max_length=args.max_length,
-        num_samples_per_length=args.num_samples
+        num_samples_per_length=args.num_samples,
+        training_file=args.training_file
     )
     
     # Test model
