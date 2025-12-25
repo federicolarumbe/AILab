@@ -146,7 +146,7 @@ def generate_chain_sequences(max_length=7, num_samples_per_length=None):
             sequence.append(np.random.choice([0, 1]))
             
             # Add operator-value pairs
-            remaining = seq_len - 3
+            remaining = seq_len - 2
             for i in range(remaining):
                 if i % 2 == 0:  # Operator
                     sequence.append(np.random.choice(OPERATOR_NAMES))
@@ -154,12 +154,12 @@ def generate_chain_sequences(max_length=7, num_samples_per_length=None):
                     sequence.append(np.random.choice([0, 1]))
             
             # Evaluate the sequence
-            try:
-                output = evaluate_chain_sequence(sequence)
-                sequences.append((sequence, output))
-            except Exception as e:
-                # Skip invalid sequences
-                continue
+            #try:
+            output = evaluate_chain_sequence(sequence)
+            sequences.append((sequence, output))
+            #except Exception as e:
+            #    # Skip invalid sequences
+            #    continue
     
     return sequences
 
@@ -216,7 +216,7 @@ def generate_stack_sequences(max_length=7, num_samples_per_length=None):
 
 def generate_all_sequence_data(max_length=7, num_samples_per_length=100):
     """
-    Generate all sequence training data (both chain and stack).
+    Generate all sequence training data (chain only, stack sequences disabled).
     
     Args:
         max_length: Maximum sequence length
@@ -229,9 +229,10 @@ def generate_all_sequence_data(max_length=7, num_samples_per_length=100):
         - lengths: List of sequence lengths
     """
     chain_seqs = generate_chain_sequences(max_length, num_samples_per_length)
-    stack_seqs = generate_stack_sequences(max_length, num_samples_per_length)
+    # Stack sequences disabled
+    # stack_seqs = generate_stack_sequences(max_length, num_samples_per_length)
     
-    all_sequences = chain_seqs + stack_seqs
+    all_sequences = chain_seqs  # Only chain sequences
     
     inputs = []
     outputs = []

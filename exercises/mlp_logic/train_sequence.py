@@ -7,7 +7,6 @@ from sequence_data_utils import (
     generate_all_sequence_data,
     create_sequence_data_loader,
     evaluate_chain_sequence,
-    evaluate_stack_sequence,
     encode_sequence
 )
 
@@ -77,7 +76,11 @@ def train_model(hidden_dim=64, num_layers=2, use_lstm=True, epochs=1000,
         num_samples_per_length=num_samples_per_length
     )
     print(f"Generated {len(inputs)} training samples")
-    print(f"Sequence lengths: min={min(lengths)}, max={max(lengths)}, avg={sum(lengths)/len(lengths):.1f}")
+    if len(lengths) > 0:
+        print(f"Sequence lengths: min={min(lengths)}, max={max(lengths)}, avg={sum(lengths)/len(lengths):.1f}")
+    else:
+        print("Warning: No training samples generated!")
+        return None
     
     # Create data loader
     train_loader = create_sequence_data_loader(
@@ -227,67 +230,10 @@ def test_model(model, device=None):
     chain_accuracy = 100.0 * chain_correct / chain_total if chain_total > 0 else 0.0
     print(f"\nChain sequences accuracy: {chain_accuracy:.2f}% ({chain_correct}/{chain_total})")
     
-    # Test stack sequences
-    print("\nStack sequences:")
-    print("-" * 60)
-    stack_examples = [
-        ([0, 1, 'and'], "Simple AND (stack format)"),
-        ([1, 1, 'or'], "Simple OR (stack format)"),
-        ([0, 1, 'xor'], "Simple XOR (stack format)"),
-        ([1, 0, 'imply'], "Simple IMPLY (stack format)"),
-        ([1, 1, 'or', 0, 0, 'and', 'or'], "Stack: (1 OR 1) OR (0 AND 0)"),
-        ([0, 1, 'xor', 1, 0, 'and', 'or'], "Stack: (0 XOR 1) OR (1 AND 0)"),
-        ([1, 0, 'and', 0, 1, 'or', 'and'], "Stack: (1 AND 0) AND (0 OR 1)"),
-        ([0, 1, 'or', 1, 0, 'xor', 'and'], "Stack: (0 OR 1) AND (1 XOR 0)"),
-        ([1, 1, 'and', 0, 0, 'or', 'xor'], "Stack: (1 AND 1) XOR (0 OR 0)"),
-        ([0, 0, 'or', 1, 1, 'and', 'imply'], "Stack: (0 OR 0) IMPLY (1 AND 1)"),
-        ([1, 0, 'xor', 0, 1, 'and', 1, 0, 'or', 'or', 'and'], "Stack: ((1 XOR 0) AND (0 AND 1)) AND (1 OR 0)"),
-        ([0, 1, 'and', 1, 0, 'or', 0, 1, 'xor', 'and', 'or'], "Stack: ((0 AND 1) OR (1 OR 0)) OR (0 XOR 1)"),
-    ]
-    
-    stack_correct = 0
-    stack_total = 0
-    
-    with torch.no_grad():
-        for sequence, description in stack_examples:
-            try:
-                expected = evaluate_stack_sequence(sequence)
-                encoded = encode_sequence(sequence)
-                padded, lengths = pad_sequences([encoded])
-                
-                input_tensor = torch.from_numpy(padded).float().to(device)
-                lengths_tensor = torch.from_numpy(lengths).to(device)
-                
-                prediction = model.predict(input_tensor, lengths_tensor).item()
-                predicted_int = int(prediction)
-                is_correct = predicted_int == expected
-                match = "✓" if is_correct else "✗"
-                
-                if is_correct:
-                    stack_correct += 1
-                stack_total += 1
-                
-                seq_str = ' '.join(str(x) for x in sequence)
-                output_line = f"{description:40} | Seq: {seq_str:35} | Expected: {expected} | Predicted: {predicted_int} {match}"
-                
-                # Print in red if failed, normal color if passed
-                if is_correct:
-                    print(output_line)
-                else:
-                    print(f"{RED}{output_line}{RESET}")
-            except Exception as e:
-                print(f"Error with {description}: {e}")
-                stack_total += 1
-    
-    stack_accuracy = 100.0 * stack_correct / stack_total if stack_total > 0 else 0.0
-    print(f"\nStack sequences accuracy: {stack_accuracy:.2f}% ({stack_correct}/{stack_total})")
-    
-    # Overall accuracy
-    total_correct = chain_correct + stack_correct
-    total_tests = chain_total + stack_total
-    overall_accuracy = 100.0 * total_correct / total_tests if total_tests > 0 else 0.0
+    # Stack sequences disabled
+    # Overall accuracy (only chain sequences)
     print(f"\n{'='*60}")
-    print(f"Overall testing accuracy: {overall_accuracy:.2f}% ({total_correct}/{total_tests})")
+    print(f"Overall testing accuracy: {chain_accuracy:.2f}% ({chain_correct}/{chain_total})")
     print(f"{'='*60}")
 
 
