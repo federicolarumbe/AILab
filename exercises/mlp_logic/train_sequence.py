@@ -194,6 +194,13 @@ def train_model(hidden_dim=64, num_layers=2, use_lstm=True, epochs=1000,
         use_lstm=use_lstm
     ).to(device)
     
+    # Count and print model parameters
+    total_params = sum(p.numel() for p in model.parameters())
+    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    print(f"\nModel parameters:")
+    print(f"  Total parameters: {total_params:,}")
+    print(f"  Trainable parameters: {trainable_params:,}")
+    
     criterion = nn.BCELoss()  # Binary cross-entropy loss
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
     
@@ -306,6 +313,8 @@ def test_model(model, device=None):
         ([0, 1, 'xor', 1, 'and', 0, 'or', 1, 'and'], "Chain 5: (((0 XOR 1) AND 1) OR 0) AND 1"),
         ([1, 0, 'or', 0, 'and', 1, 'xor', 0, 'or'], "Chain 5: (((1 OR 0) AND 0) XOR 1) OR 0"),
         ([0, 1, 'imply', 1, 'and', 0, 'or', 1, 'xor'], "Chain 5: (((0 IMPLY 1) AND 1) OR 0) XOR 1"),
+        ([1, 0, 'and', 1, 'or', 1, 'and', 0, 'or'], "Chain 5: (((1 AND 0) OR 1) AND 1) OR 0"),
+        ([1, 0, 'and', 1, 'or', 1, 'and', 0, 'and'], "Chain 5: (((1 AND 0) OR 1) AND 1) AND 0"),
     ])
     
     model.eval()
