@@ -223,15 +223,31 @@ def test_model(model, device=None):
     # Generate all simple operation test cases (all combinations)
     chain_examples = generate_simple_chain_test_cases()
     
-    # Add longer chain examples (keep as is)
+    # Add test cases with 3 values: [x1, x2, op1, x3, op2] representing (x1 op1 x2) op2 x3
     chain_examples.extend([
-        ([1, 1, 'or', 0, 'and'], "Chain: (1 OR 1) AND 0"),
-        ([0, 1, 'xor', 1, 'and', 0, 'or'], "Chain: ((0 XOR 1) AND 1) OR 0"),
-        ([0, 0, 'and', 1, 'or', 1, 'and'], "Chain: ((0 AND 0) OR 1) AND 1"),
-        ([1, 0, 'or', 0, 'and', 1, 'xor'], "Chain: ((1 OR 0) AND 0) XOR 1"),
-        ([0, 1, 'imply', 1, 'and', 0, 'or'], "Chain: ((0 IMPLY 1) AND 1) OR 0"),
-        ([1, 1, 'and', 0, 'or', 1, 'and', 0, 'or'], "Chain: (((1 AND 1) OR 0) AND 1) OR 0"),
-        ([0, 0, 'or', 1, 'and', 0, 'xor', 1, 'or'], "Chain: (((0 OR 0) AND 1) XOR 0) OR 1"),
+        ([1, 1, 'or', 0, 'and'], "Chain 3: (1 OR 1) AND 0"),
+        ([0, 0, 'and', 1, 'or'], "Chain 3: (0 AND 0) OR 1"),
+        ([0, 1, 'xor', 1, 'and'], "Chain 3: (0 XOR 1) AND 1"),
+        ([1, 0, 'or', 0, 'xor'], "Chain 3: (1 OR 0) XOR 0"),
+        ([0, 1, 'imply', 1, 'and'], "Chain 3: (0 IMPLY 1) AND 1"),
+    ])
+    
+    # Add test cases with 4 values: [x1, x2, op1, x3, op2, x4, op3] representing ((x1 op1 x2) op2 x3) op3 x4
+    chain_examples.extend([
+        ([0, 1, 'xor', 1, 'and', 0, 'or'], "Chain 4: ((0 XOR 1) AND 1) OR 0"),
+        ([0, 0, 'and', 1, 'or', 1, 'and'], "Chain 4: ((0 AND 0) OR 1) AND 1"),
+        ([1, 0, 'or', 0, 'and', 1, 'xor'], "Chain 4: ((1 OR 0) AND 0) XOR 1"),
+        ([0, 1, 'imply', 1, 'and', 0, 'or'], "Chain 4: ((0 IMPLY 1) AND 1) OR 0"),
+        ([1, 1, 'and', 0, 'or', 1, 'xor'], "Chain 4: ((1 AND 1) OR 0) XOR 1"),
+    ])
+    
+    # Add test cases with 5 values: [x1, x2, op1, x3, op2, x4, op3, x5, op4] representing (((x1 op1 x2) op2 x3) op3 x4) op4 x5
+    chain_examples.extend([
+        ([1, 1, 'and', 0, 'or', 1, 'and', 0, 'or'], "Chain 5: (((1 AND 1) OR 0) AND 1) OR 0"),
+        ([0, 0, 'or', 1, 'and', 0, 'xor', 1, 'or'], "Chain 5: (((0 OR 0) AND 1) XOR 0) OR 1"),
+        ([0, 1, 'xor', 1, 'and', 0, 'or', 1, 'and'], "Chain 5: (((0 XOR 1) AND 1) OR 0) AND 1"),
+        ([1, 0, 'or', 0, 'and', 1, 'xor', 0, 'or'], "Chain 5: (((1 OR 0) AND 0) XOR 1) OR 0"),
+        ([0, 1, 'imply', 1, 'and', 0, 'or', 1, 'xor'], "Chain 5: (((0 IMPLY 1) AND 1) OR 0) XOR 1"),
     ])
     
     model.eval()
