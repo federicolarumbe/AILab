@@ -326,6 +326,16 @@ def test_model(model, device=None):
         ([0, 1, 'imply', 1, 'and', 0, 'or', 1, 'xor', 0, 'or'], "Chain 6: ((((0 IMPLY 1) AND 1) OR 0) XOR 1) OR 0"),
     ])
     
+    # Add test cases with 20 values: [x1, x2, op1, x3, op2, ..., x20, op19]
+    # Two expressions that are identical except for the last value
+    # Pattern: [x1, x2, op1, x3, op2, x4, op3, ..., x20, op19]
+    # For 20 values: 20 values + 19 operators = 39 elements total, ending with operator
+    chain_20_base = [1, 0, 'and', 1, 'or', 0, 'and', 1, 'or', 0, 'and', 1, 'or', 0, 'and', 1, 'or', 0, 'and', 1, 'or', 0, 'and', 1, 'or', 0, 'and', 1, 'or', 0, 'and', 1, 'or', 0, 'and', 1, 'or', 0, 'and', 1, 'or']  # 19 values + 19 operators = 38 elements, needs 1 more value and 1 more operator
+    chain_examples.extend([
+        (chain_20_base + [1, 'and'], "Chain 20: (last value = 1)"),
+        (chain_20_base + [0, 'and'], "Chain 20: (last value = 0)"),
+    ])
+    
     model.eval()
     chain_correct = 0
     chain_total = 0
