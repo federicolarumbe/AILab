@@ -223,10 +223,11 @@ def generate_all_sequence_data(max_length=7, num_samples_per_length=100):
         num_samples_per_length: Number of samples per sequence length
     
     Returns:
-        Tuple of (inputs, outputs, lengths) where:
+        Tuple of (inputs, outputs, lengths, raw_sequences) where:
         - inputs: List of encoded sequences (variable length)
         - outputs: List of outputs
         - lengths: List of sequence lengths
+        - raw_sequences: List of original sequences (for saving to file)
     """
     chain_seqs = generate_chain_sequences(max_length, num_samples_per_length)
     # Stack sequences disabled
@@ -237,14 +238,16 @@ def generate_all_sequence_data(max_length=7, num_samples_per_length=100):
     inputs = []
     outputs = []
     lengths = []
+    raw_sequences = []
     
     for sequence, output in all_sequences:
         encoded = encode_sequence(sequence)
         inputs.append(encoded)
         outputs.append(output)
         lengths.append(len(sequence))
+        raw_sequences.append(sequence)
     
-    return inputs, outputs, lengths
+    return inputs, outputs, lengths, raw_sequences
 
 
 def pad_sequences(sequences, max_length=None):

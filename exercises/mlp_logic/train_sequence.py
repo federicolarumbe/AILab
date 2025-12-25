@@ -2,6 +2,9 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import argparse
+import json
+import os
+import numpy as np
 from sequence_model import SequenceLogicMLP
 from sequence_data_utils import (
     generate_all_sequence_data,
@@ -71,7 +74,7 @@ def train_model(hidden_dim=64, num_layers=2, use_lstm=True, epochs=1000,
     
     # Generate training data
     print("Generating sequence training data...")
-    inputs, outputs, lengths = generate_all_sequence_data(
+    inputs, outputs, lengths, raw_sequences = generate_all_sequence_data(
         max_length=max_length,
         num_samples_per_length=num_samples_per_length
     )
@@ -81,6 +84,45 @@ def train_model(hidden_dim=64, num_layers=2, use_lstm=True, epochs=1000,
     else:
         print("Warning: No training samples generated!")
         return None
+    
+    # Save training set to file
+    # Convert numpy types to native Python types for JSON serialization
+    def convert_to_python_type(obj):
+        """Convert numpy types to native Python types."""
+        if isinstance(obj, (np.integer, np.int64, np.int32)):
+            return int(obj)
+        elif isinstance(obj, (np.floating, np.float64, np.float32)):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return [convert_to_python_type(x) for x in obj]
+        elif isinstance(obj, list):
+            return [convert_to_python_type(x) for x in obj]
+        else:
+            return obj
+    
+    training_data = {
+        'samples': [
+            {
+                'sequence': [convert_to_python_type(x) for x in sequence],
+                'output': convert_to_python_type(output),
+                'length': convert_to_python_type(length)
+            }
+            for sequence, output, length in zip(raw_sequences, outputs, lengths)
+        ],
+        'metadata': {
+            'total_samples': len(inputs),
+            'max_length': int(max_length),
+            'num_samples_per_length': int(num_samples_per_length),
+            'min_length': convert_to_python_type(min(lengths)) if lengths else 0,
+            'max_seq_length': convert_to_python_type(max(lengths)) if lengths else 0,
+            'avg_length': convert_to_python_type(sum(lengths) / len(lengths)) if lengths else 0.0
+        }
+    }
+    
+    output_file = '/tmp/sequence_training_set.json'
+    with open(output_file, 'w') as f:
+        json.dump(training_data, f, indent=2)
+    print(f"Training set saved to {output_file}")
     
     # Create data loader
     train_loader = create_sequence_data_loader(
