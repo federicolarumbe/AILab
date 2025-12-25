@@ -317,6 +317,15 @@ def test_model(model, device=None):
         ([1, 0, 'and', 1, 'or', 1, 'and', 0, 'and'], "Chain 5: (((1 AND 0) OR 1) AND 1) AND 0"),
     ])
     
+    # Add test cases with 6 values: [x1, x2, op1, x3, op2, x4, op3, x5, op4, x6, op5] representing ((((x1 op1 x2) op2 x3) op3 x4) op4 x5) op5 x6
+    chain_examples.extend([
+        ([1, 1, 'and', 0, 'or', 1, 'and', 0, 'or', 1, 'xor'], "Chain 6: ((((1 AND 1) OR 0) AND 1) OR 0) XOR 1"),
+        ([0, 0, 'or', 1, 'and', 0, 'xor', 1, 'or', 0, 'and'], "Chain 6: ((((0 OR 0) AND 1) XOR 0) OR 1) AND 0"),
+        ([0, 1, 'xor', 1, 'and', 0, 'or', 1, 'and', 1, 'or'], "Chain 6: ((((0 XOR 1) AND 1) OR 0) AND 1) OR 1"),
+        ([1, 0, 'or', 0, 'and', 1, 'xor', 0, 'or', 1, 'and'], "Chain 6: ((((1 OR 0) AND 0) XOR 1) OR 0) AND 1"),
+        ([0, 1, 'imply', 1, 'and', 0, 'or', 1, 'xor', 0, 'or'], "Chain 6: ((((0 IMPLY 1) AND 1) OR 0) XOR 1) OR 0"),
+    ])
+    
     model.eval()
     chain_correct = 0
     chain_total = 0
