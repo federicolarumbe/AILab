@@ -150,7 +150,7 @@ def load_or_generate_training_data(training_file=None, max_length=7, num_samples
 
 def train_model(hidden_dim=64, num_layers=2, use_lstm=True, epochs=1000, 
                 batch_size=32, learning_rate=0.001, max_length=7, 
-                num_samples_per_length=100, training_file=None, device=None):
+                num_samples_per_length=100, training_file=None, model_path='sequence_model.pt', device=None):
     """
     Train the sequence boolean logic MLP.
     
@@ -164,6 +164,7 @@ def train_model(hidden_dim=64, num_layers=2, use_lstm=True, epochs=1000,
         max_length (int): Maximum sequence length for training data (only used if training_file is None)
         num_samples_per_length (int): Number of samples per sequence length (only used if training_file is None)
         training_file (str): Path to JSON file with training data (if provided, loads instead of generating)
+        model_path (str): Path to save the trained model
         device: PyTorch device (cuda or cpu)
     """
     if device is None:
@@ -260,6 +261,10 @@ def train_model(hidden_dim=64, num_layers=2, use_lstm=True, epochs=1000,
         
         accuracy = 100.0 * correct / total
         print(f"Final accuracy: {accuracy:.2f}% ({correct}/{total})")
+    
+    # Save model
+    torch.save(model, model_path)
+    print(f"\nModel saved to {model_path}")
     
     return model
 
@@ -393,6 +398,7 @@ if __name__ == "__main__":
     parser.add_argument('--max_length', type=int, default=7, help='Maximum sequence length (default: 7)')
     parser.add_argument('--num_samples', type=int, default=100, help='Number of samples per length (default: 100)')
     parser.add_argument('--training_file', type=str, default=None, help='Path to JSON file with training data (if provided, loads instead of generating)')
+    parser.add_argument('--model_path', type=str, default='sequence_model.pt', help='Path to save the trained model (default: sequence_model.pt)')
     
     args = parser.parse_args()
     
@@ -408,7 +414,8 @@ if __name__ == "__main__":
         learning_rate=args.learning_rate,
         max_length=args.max_length,
         num_samples_per_length=args.num_samples,
-        training_file=args.training_file
+        training_file=args.training_file,
+        model_path=args.model_path
     )
     
     # Test model
